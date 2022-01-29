@@ -1,7 +1,7 @@
 import { Box, Button, Text, TextField, Image } from '@skynexui/components'
 import React, { useEffect } from 'react';
 import appConfig from '../config.json'
-import { useRouter } from 'next/router'
+import { useRouter } from 'next/router' 
 
 
 
@@ -66,9 +66,9 @@ export default function PaginaInicial() {
                         onSubmit={(event) => {
                             event.preventDefault();
 
-                            console.log('Formulário');
+                            // console.log('Formulário');
 
-                            roteamento.push('/chat');
+                            roteamento.push(`/chat?username=${username}`);
                             // window.location.href = '/chat';
                         }}
                         styleSheet={{
@@ -84,7 +84,7 @@ export default function PaginaInicial() {
                         <TextField
                             value={username}
                             onChange={(event) => {
-                                console.log("usuario digitou");
+                                // console.log("usuario digitou");
                                 //onde ta o valor 
                                 const valor = event.target.value;
 
@@ -110,7 +110,7 @@ export default function PaginaInicial() {
                                 contrastColor: appConfig.theme.colors.neutrals["000"],
                                 mainColor: appConfig.theme.colors.primary[500],
                                 mainColorLight: appConfig.theme.colors.primary[400],
-                                mainColorStrong: appConfig.theme.colors.primary[600],
+                                mainColorStrong: appConfig.theme.colors.primary[100],
                             }}
                         />
                     </Box>

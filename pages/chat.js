@@ -1,7 +1,11 @@
 import { Box, Text, TextField, Image, Button } from '@skynexui/components';
 import React from 'react';
 import appConfig from '../config.json';
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@supabase/supabase-js';
+import { useRouter } from 'next/router';
+import { ButtonSendSticker } from '../src/components/ButtonSendSticker'
+
+
 
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlhdCI6MTY0MzMyODI1OSwiZXhwIjoxOTU4OTA0MjU5fQ.EwOuib0rjSG5tF9mZ9PQ9s4oCfx9WVvDaiJ75Gzdcqc';
 const SUPABASE_URL = 'https://qzlpfyfgzdvbsxohspdw.supabase.co';
@@ -18,6 +22,15 @@ async function apiUrl(user) {
 }
 
 
+function escutaMensagemEmTempoReal(adicionaMensagens) {
+    return supabaseClient
+        .from('messages')
+        .on('INSERT', (respostaLive) => {
+            // console.log(respostaLive.new)
+            adicionaMensagens(respostaLive.new)
+        })
+        .subscribe();
+}
 // fetch(`${SUPABASE_URL}/rest/v1/messages?select+*`, {
 //     headers: {
 //         'Content-Type': 'application/json',
@@ -29,13 +42,18 @@ async function apiUrl(user) {
 //         return res.json()
 //     })
 //     .then((response) => {
-//         console.log(response);
+// console.log(response);
 //     })
 
 export default function ChatPage() {
+    const roteamento = useRouter();
+    const usuarioLogado = roteamento.query.username;
+
+    // console.log('usuario logado', usuarioLogado);
+
     const [message, setMessage] = React.useState('');
     const [messageList, setMessageList] = React.useState([]);
-
+    const [carregando, setCarregando] = React.useState(true);
 
     React.useEffect(() => {
         supabaseClient
@@ -43,13 +61,24 @@ export default function ChatPage() {
             .select('*')
             .order('id', { ascending: false })
             .then(({ data }) => {
-                setMessageList(data)
+                setMessageList(data);
+                setCarregando(false);
             });
+
+        escutaMensagemEmTempoReal((newMessage) => {
+            setMessageList((currentValue) => {
+                return [
+                    newMessage,
+                    ...currentValue
+                ]
+            })
+
+        });
     }, []);
 
     function handleNewMessage(newMessage) {
         const mensagem = {
-            de: `vagnersilvas`,
+            de: usuarioLogado,
             texto: newMessage,
         }
 
@@ -59,10 +88,7 @@ export default function ChatPage() {
                 mensagem
             ])
             .then(({ data }) => {
-                setMessageList([
-                    data[0],
-                    ...messageList
-                ])
+
             })
 
         setMessageList([
@@ -111,7 +137,7 @@ export default function ChatPage() {
                     }}
                 >
 
-                    <MessageList messages={messageList} />
+                    <MessageList messages={messageList} carregando={carregando} />
 
                     <Box
                         as="form"
@@ -121,6 +147,11 @@ export default function ChatPage() {
                             justifyContent: 'space-between'
                         }}
                     >
+                        <ButtonSendSticker
+                            onStickerClick={(sticker) => {
+                                handleNewMessage(`:sticker: ${sticker}`)
+                            }} />
+
                         <TextField
                             value={message}
                             onChange={(event) => {
@@ -146,18 +177,20 @@ export default function ChatPage() {
                                 color: appConfig.theme.colors.neutrals[200],
                             }}
                         />
+
+
                         <Box>
                             <Button
                                 colorVariant='negative'
-                                label='OK'
+                                label='ENVIAR'
                                 onClick={() => {
                                     handleNewMessage(message);
                                 }}
                                 styleSheet={{
                                     backgroundColor: appConfig.theme.colors.neutrals[200],
-                                    width: '40px',
+                                    width: '100px',
                                     height: '40px',
-                                    borderRadius: '50%',
+                                    borderRadius: '10px',
                                     display: 'inline-block',
                                     textAlign: 'center',
                                     padding: '2px',
@@ -193,7 +226,9 @@ function Header() {
 }
 
 function MessageList(props) {
-    console.log('MessageList', props);
+    
+    
+    
     return (
         <Box
             tag="ul"
@@ -207,6 +242,20 @@ function MessageList(props) {
                 marginBottom: '16px',
             }}
         >
+            {props.carregando && (
+                <Box
+                    styleSheet={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)'
+                    }}
+                >
+                    <Text styleSheet={{ color: '#9AA5B1', fontSize: { xs: '13px', 'md': '14px' } }}>
+                        Carregando mensagens...
+                    </Text>
+                </Box>
+            )}
             {props.messages.map((message) => {
                 return (
                     <Text
@@ -259,7 +308,20 @@ function MessageList(props) {
                                 {(new Date().toLocaleDateString())}
                             </Text>
                         </Box>
-                        {message.texto}
+                        {message.texto.startsWith(':sticker:')
+                            ? (
+                                <Image
+                                    src={message.texto.replace(':sticker:', '')}
+                                    styleSheet={{
+                                        width: '100px',
+                                    }}
+                                />
+                            )
+                            : message.texto
+                        }
+
+
+                        {/* {message.texto} */}
                     </Text>
                 )
             })}
